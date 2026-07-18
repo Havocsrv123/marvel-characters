@@ -3,7 +3,7 @@ import json
 import os
 
 import mlflow
-from dotenv import load_dotenv
+from dotenv import find_dotenv, load_dotenv
 
 
 # Set up Databricks or local MLflow tracking
@@ -13,11 +13,15 @@ def is_databricks() -> bool:
 
 # COMMAND ----------
 mlflow.get_tracking_uri()
+# returning local file path if not set, or databricks://<profile> if set in env variable PROFILE
 
 # COMMAND ----------
 if not is_databricks():
     load_dotenv()
-    profile = os.environ.get("PROFILE")
+    load_dotenv(find_dotenv("tests/.env", usecwd=True))
+    profile = os.environ.get("PROFILE") or os.environ.get("DATABRICKS_CONFIG_PROFILE")
+    if not profile:
+        raise RuntimeError("Set PROFILE or DATABRICKS_CONFIG_PROFILE to a configured Databricks CLI profile.")
     mlflow.set_tracking_uri(f"databricks://{profile}")
     mlflow.set_registry_uri(f"databricks-uc://{profile}")
 
