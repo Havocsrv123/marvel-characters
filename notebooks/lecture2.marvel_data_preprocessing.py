@@ -4,7 +4,8 @@
 # MAGIC %restart_python
 
 # COMMAND ----------
-# from pathlib import Path
+from pathlib import Path
+
 # import sys
 # sys.path.append(str(Path.cwd().parent / 'src'))
 
@@ -12,12 +13,14 @@
 import pandas as pd
 import yaml
 from loguru import logger
-from pyspark.sql import SparkSession
 
 from marvel_characters.config import ProjectConfig
 from marvel_characters.data_processor import DataProcessor
 
-config = ProjectConfig.from_yaml(config_path="../project_config_marvel.yml", env="dev")
+notebook_dir = Path(__file__).resolve().parent if "__file__" in globals() else Path.cwd()
+project_root = notebook_dir.parent
+
+config = ProjectConfig.from_yaml(config_path=project_root / "project_config_marvel.yml", env="dev")
 
 logger.info("Configuration loaded:")
 logger.info(yaml.dump(config, default_flow_style=False))
@@ -25,9 +28,12 @@ logger.info(yaml.dump(config, default_flow_style=False))
 # COMMAND ----------
 
 # Load the Marvel characters dataset
-spark = SparkSession.builder.getOrCreate()
+if "spark" not in globals():
+    from databricks.connect import DatabricksSession
 
-filepath = "../data/marvel_characters_dataset.csv"
+    spark = DatabricksSession.builder.serverless().getOrCreate()
+
+filepath = project_root / "data" / "marvel_characters_dataset.csv"
 
 # Load the data
 df = pd.read_csv(filepath)
@@ -63,4 +69,4 @@ data_processor.save_to_catalog(X_train, X_test)
 # Enable change data feed (only once!)
 logger.info("Enable change data feed")
 data_processor.enable_change_data_feed()
-# COMMAND ---------- 
+# COMMAND ----------
